@@ -29,6 +29,25 @@ double ftc_u(double x, double y) { return 1000 * pow(x, 3) + 2000 * pow(y, 3); }
 
 // TESTS
 
+void base_test(size_t size) 
+{
+    env my_env = create_env(size, base_f, base_u);
+    double** matrix = create_matrix(size, base_u, my_env.h);
+
+    double st_start = omp_get_wtime();
+    calculate_aproxy(matrix, my_env.f, my_env.size);
+    double st_end = omp_get_wtime();
+
+
+    omp_set_num_threads(THREADS_AMOUNT);
+
+    double mt_start = omp_get_wtime();
+    calculate_aproxy(my_env.u, my_env.f, my_env.size);
+    double mt_end = omp_get_wtime();
+
+    omp_set_num_threads(1);
+}
+
 void first_test_case(size_t size)
 {
     env my_env = create_env(size, base_f, base_u);
