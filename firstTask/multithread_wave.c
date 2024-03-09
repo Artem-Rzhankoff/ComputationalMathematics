@@ -29,7 +29,7 @@ double calculate_block(double** matrix, size_t size, int x, int y, int h, double
 
 void calculate_aproxy(double** matrix, double** f , size_t size) 
 {
-    double h = 1 / (size + 1), dmax = 0;
+    double h = 1. / (size + 1), dmax = 0;
     int i, j;
     double d;
     double* dm = malloc (size * sizeof(double));
