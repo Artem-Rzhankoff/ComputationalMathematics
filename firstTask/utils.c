@@ -8,20 +8,6 @@ typedef struct {
     double max;
 } error;
 
-double randfrom(double min, double max)
-{
-    double range = max - min;
-    double div = RAND_MAX / range;
-    return min + (rand() / div);
-}
-
-void random_padding1(double** matrix, size_t size)
-{
-    for (int i = 1; i < size + 1; ++i)
-        for (int j = 1; j < size + 1; ++j)
-            matrix[i][j] = 0;//randfrom(-100.0, 100.0);
-}
-
 void random_padding(double** matrix, size_t size)
 {
     int n = 0;
@@ -112,11 +98,9 @@ error calculate_approximation_error(func u, env my_env)
             if (u_ij > max) {
                 max = u_ij;
             }
-            if (u_ij == 0) {
-                //sum += fabs((approximate_u[i][j] - u_ij) / 1e-6);
-            } else {
-                sum += fabs(approximate_u[i][j] - u_ij) / u_ij;
-            }
+            if (u_ij != 0) {
+                sum += fabs((approximate_u[i][j] - u_ij) / u_ij);
+            } 
         }
     }
     error e;

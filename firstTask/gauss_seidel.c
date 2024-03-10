@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <math.h>
 #include "utils.h"
-#include "helper.h"
+#include <stdio.h>
 
 void calculate_aproxy_gauss(double** matrix, double** f, size_t size)
 {
@@ -21,5 +21,5 @@ void calculate_aproxy_gauss(double** matrix, double** f, size_t size)
                 if (dmax - dm) dmax = dm;
             }
         }
-    } while (dmax > EPSILON);
+    } while (dmax > 0.01);
 }

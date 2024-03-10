@@ -29,14 +29,12 @@ double calculate_block(double** matrix, size_t size, int x, int y, int h, double
 
 void calculate_aproxy(double** matrix, double** f , size_t size) 
 {
-    double h = 1. / (size + 1), dmax = 0;
+    double h = 1.0 / (size + 1), dmax = 0;
     int i, j;
     double d;
     double* dm = malloc (size * sizeof(double));
     size_t block_amount = size / BLOCK_SIZE;
 
-    omp_lock_t dmax_lock;
-    omp_init_lock (&dmax_lock);
     do {
         dmax = 0;
         for (int wavelength = 0; wavelength < block_amount; ++wavelength) {
@@ -58,11 +56,8 @@ void calculate_aproxy(double** matrix, double** f , size_t size)
                 if (dm[i] < d) dm[i] = d;
             }            
         }
-#pragma omp parallel for shared(size, dm, dmax) private(i)
         for (i = 0; i < block_amount + 1; ++i) {
-            omp_set_lock(&dmax_lock);
                 if (dm[i] > dmax) dmax = dm[i];
-            omp_unset_lock(&dmax_lock); 
         }
 
     } while (dmax > EPSILON);
