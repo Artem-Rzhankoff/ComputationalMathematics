@@ -46,7 +46,7 @@ int unambiguity_single_multi_threading_versions() {
         }
     }
 
-    calculate_aproxy_gauss(matrix, my_env.f, my_env.size);
+    calculate_aproxy(matrix, my_env.f, my_env.size);
 
     omp_set_num_threads(THREADS_AMOUNT);
     calculate_aproxy(my_env.u, my_env.f, my_env.size);
