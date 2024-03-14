@@ -1,4 +1,4 @@
-#define EPSILON 0.01
+#define EPSILON 0.001
 #define BLOCK_SIZE 200
 
 typedef double (*func)(double, double);

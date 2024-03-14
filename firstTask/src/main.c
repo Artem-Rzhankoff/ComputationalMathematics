@@ -25,11 +25,14 @@ double ftc_u(double x, double y)
         return 0;
 }
 
-double stc_f(double x, double y) { return 6000 * x + 9000 * y; }
+double stc_f(double x, double y) { return 6000 * pow(x, 2) + 9000 * y; }
 double stc_u(double x, double y) { return 500 * pow(x, 4) + 1500 * pow(y, 3); }
 
-double ttc_f(double x, double y) { return -sin(x) / 1000 - sin(y) / 1000; }
-double ttc_u(double x, double y) { return sin(x) / 1000 + sin(y) / 1000; }
+double ttc_f(double x, double y) { return -sin(x) / 10 - cos(y) / 10; }
+double ttc_u(double x, double y) { return sin(10 * x) / 10 + cos(10 * y) / 10; }
+
+double thtc_f(double x, double y) { return 10 / pow(2*x+y+1/100, 3); }
+double thtc_u(double x, double y) { return 1 / (pow(x, 2) + pow(y, 2) + 0.005); }
 
 // TESTS
 
@@ -75,7 +78,7 @@ void first_test(size_t size, int threads_amount, FILE* fptr) {
     calculate_aproxy(my_env.u, my_env.f, my_env.size);
     double mt_end = omp_get_wtime();
 
-    fprintf(fptr, "     %8.4fs    |", mt_end - mt_start);
+    fprintf(fptr, "%.4f ", mt_end - mt_start);
 }
 
 void run_test(size_t size, int threads_amount, FILE* fptr, func f, func u) 
@@ -90,19 +93,12 @@ void run_test(size_t size, int threads_amount, FILE* fptr, func f, func u)
     double mt_end = omp_get_wtime();
     omp_set_num_threads(1);
 
-    fprintf(fptr, "     %8.4fs    |", fabs(mt_end - mt_start));
+    fprintf(fptr, "%.4f ", fabs(mt_end - mt_start));
 
     if (threads_amount > 1) {
         error e = calculate_approximation_error(f, my_env);
-        fprintf(fptr, "     %10.5f     |", e.average);
+        fprintf(fptr, "%.5f ", e.average);
     }
-}
-
-void write_table_head(int test_num, FILE* fptr)
-{
-    fprintf(fptr, "#################TEST %d#################\n", test_num);
-    fprintf(fptr, " |  GRID SIZE  | TIME  (1 THREAD) | TIME (%d THREADS) | APPROXIMATION ERROR|\n", THREADS_AMOUNT);
-    fprintf(fptr, " *-------------*------------------*-------------------*--------------------*\n");
 }
 
 int main() 
@@ -111,34 +107,43 @@ int main()
         return -1;
     }
 
-    FILE *fptr = fopen("results.txt", "w");
+    FILE *fptr = fopen("../result1.txt", "w");
     size_t sz[6] = {200, 300, 500, 700, 900, 2000};
 
-    write_table_head(1, fptr);
     for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, " |    %.4d     |", sz[i]);
+        fprintf(fptr, "%d ", sz[i]);
         first_test(sz[i], 1, fptr);
         first_test(sz[i], THREADS_AMOUNT, fptr);
-        fprintf(fptr, "\n *-------------*-----------------*-------------------*--------------------*\n");
+        fprintf(fptr, "\n");
     }
-    fprintf(fptr, "\n");
+    fclose(fptr);
 
-    write_table_head(2, fptr);
+    fptr = fopen("../result2.txt", "w");
     for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, " |    %.4d     |", sz[i]);
+        fprintf(fptr, "%d ", sz[i]);
         run_test(sz[i], 1, fptr, stc_f, stc_u);
         run_test(sz[i], THREADS_AMOUNT, fptr, stc_f, stc_u);
-        fprintf(fptr, "\n *-------------*-----------------*-------------------*--------------------*\n");
+        fprintf(fptr, "\n");
     }
-    fprintf(fptr, "\n");
+    fclose(fptr);
 
-    write_table_head(3, fptr);
+    fptr = fopen("../result3.txt", "w");
     for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, " |    %.4d     |", sz[i]);
+        fprintf(fptr, "%d ", sz[i]);
         run_test(sz[i], 1, fptr, ttc_f, ttc_u);
         run_test(sz[i], THREADS_AMOUNT, fptr, ttc_f, ttc_u);
-        fprintf(fptr, "\n *-------------*-----------------*-------------------*--------------------*\n");
+        fprintf(fptr, "\n");
     }
+    fclose(fptr);
+
+    fptr = fopen("../result4.txt", "w");
+    for (int i = 0; i < 6; ++i) {
+        fprintf(fptr, "%d ", sz[i]);
+        run_test(sz[i], 1, fptr, ttc_f, ttc_u);
+        run_test(sz[i], THREADS_AMOUNT, fptr, ttc_f, ttc_u);
+        fprintf(fptr, "\n");
+    }
+    fclose(fptr);
 
     return 0;
 }
