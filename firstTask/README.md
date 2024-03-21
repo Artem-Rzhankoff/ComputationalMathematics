@@ -28,6 +28,7 @@
   - Функция 4 : $\frac{1}{x^2 + y^2 + 0.005}$
 
 
+
 ### Оценка эффективности
 
 ![CompareEfficiency](results/compare_efficiency.png)

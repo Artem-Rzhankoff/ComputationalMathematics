@@ -31,8 +31,8 @@ double stc_u(double x, double y) { return 500 * pow(x, 4) + 1500 * pow(y, 3); }
 double ttc_f(double x, double y) { return -sin(x) / 10 - cos(y) / 10; }
 double ttc_u(double x, double y) { return sin(10 * x) / 10 + cos(10 * y) / 10; }
 
-double thtc_f(double x, double y) { return 10 / pow(2*x+y+1/100, 3); }
-double thtc_u(double x, double y) { return 1 / (pow(x, 2) + pow(y, 2) + 0.005); }
+double fotc_f(double x, double y) { return 10 / pow(2*x+y+1/100, 3); }
+double fotc_u(double x, double y) { return 1 / (pow(x, 2) + pow(y, 2) + 0.005); }
 
 // TESTS
 
@@ -107,43 +107,58 @@ int main()
         return -1;
     }
 
-    FILE *fptr = fopen("../result1.txt", "w");
-    size_t sz[6] = {200, 300, 500, 700, 900, 2000};
+    for (int j = 0; j < 10; ++j) {
+        char buffer1[20];
+        sprintf(buffer1, "../result1.%d.txt", j+1);
+        FILE *fptr = fopen(buffer1, "w");
+        size_t sz[6] = {200, 300, 500, 700, 900, 1500};
 
-    for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, "%d ", sz[i]);
-        first_test(sz[i], 1, fptr);
-        first_test(sz[i], THREADS_AMOUNT, fptr);
-        fprintf(fptr, "\n");
-    }
-    fclose(fptr);
+        for (int i = 0; i < 6; ++i) {
+            fprintf(fptr, "%d ", sz[i]);
+            first_test(sz[i], 1, fptr);
+            first_test(sz[i], THREADS_AMOUNT, fptr);
+            fprintf(fptr, "\n");
+        }
+        fclose(fptr);
 
-    fptr = fopen("../result2.txt", "w");
-    for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, "%d ", sz[i]);
-        run_test(sz[i], 1, fptr, stc_f, stc_u);
-        run_test(sz[i], THREADS_AMOUNT, fptr, stc_f, stc_u);
-        fprintf(fptr, "\n");
-    }
-    fclose(fptr);
+        char buffer2[20];
+        sprintf(buffer2, "../result2.%d.txt", j+1);
+        fptr = fopen(buffer2, "w");
+        int limit;
+        if (j < 5)
+            limit = 6; 
+        else 
+            limit = 5;
+        for (int i = 0; i < limit; ++i) {
+            fprintf(fptr, "%d ", sz[i]);
+            run_test(sz[i], 1, fptr, stc_f, stc_u);
+            run_test(sz[i], THREADS_AMOUNT, fptr, stc_f, stc_u);
+            fprintf(fptr, "\n");
+        }
+        fclose(fptr);
 
-    fptr = fopen("../result3.txt", "w");
-    for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, "%d ", sz[i]);
-        run_test(sz[i], 1, fptr, ttc_f, ttc_u);
-        run_test(sz[i], THREADS_AMOUNT, fptr, ttc_f, ttc_u);
-        fprintf(fptr, "\n");
-    }
-    fclose(fptr);
+        char buffer3[20];
+        sprintf(buffer3, "../result3.%d.txt", j+1);
+        fptr = fopen(buffer3, "w");
+        for (int i = 0; i < 6; ++i) {
+            fprintf(fptr, "%d ", sz[i]);
+            run_test(sz[i], 1, fptr, ttc_f, ttc_u);
+            run_test(sz[i], THREADS_AMOUNT, fptr, ttc_f, ttc_u);
+            fprintf(fptr, "\n");
+        }
+        fclose(fptr);
 
-    fptr = fopen("../result4.txt", "w");
-    for (int i = 0; i < 6; ++i) {
-        fprintf(fptr, "%d ", sz[i]);
-        run_test(sz[i], 1, fptr, ttc_f, ttc_u);
-        run_test(sz[i], THREADS_AMOUNT, fptr, ttc_f, ttc_u);
-        fprintf(fptr, "\n");
+        char buffer4[20];
+        sprintf(buffer4, "../result4.%d.txt", j+1);
+        fptr = fopen(buffer4, "w");
+        for (int i = 0; i < 6; ++i) {
+            fprintf(fptr, "%d ", sz[i]);
+            run_test(sz[i], 1, fptr, fotc_f, fotc_u);
+            run_test(sz[i], THREADS_AMOUNT, fptr, fotc_f, fotc_u);
+            fprintf(fptr, "\n");
+        }
+        fclose(fptr);
     }
-    fclose(fptr);
 
     return 0;
 }
