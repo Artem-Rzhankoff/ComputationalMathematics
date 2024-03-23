@@ -100,7 +100,6 @@ data = [[], [], []]
 for i in range(2, 5):
     with open("result{num:d}.txt".format(num=i), "r") as file:
         for line in file.readlines():
-            print(i)
             f_list = [float(i) for i in line.split(" ") if i.strip()]
             # add grid size and efficiency increase coeff
             coeff = round(float(f_list[1]) / float(f_list[2]), 3)
