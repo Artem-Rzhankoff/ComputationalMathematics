@@ -24,7 +24,7 @@ SIZE = 800x559
 
 | source | NumPy | primitive | advanced |
 | -------|-------|-----------|----------|
-| ![](src\logo.bmp) | ![](src\logo_standard.bmp) | ![](src\logo_primitive.bmp) | ![](src\logo_advanced.bmp) | 
+| ![1](src/logo.bmp) | ![2](src/logo_standard.bmp) | ![3](src/logo_primitive.bmp) | ![4](src/logo_advanced.bmp) | 
 
 ### Высокая контрастность (числовая устойчивость)
 SIZE = 1062x1400
@@ -32,14 +32,14 @@ SIZE = 1062x1400
 
 | source | NumPy | primitive | advanced |
 | -------|-------|-----------|----------|
-| ![](src\or.bmp) | ![](src\or_st.bmp) | ![](src\or_pr.bmp) | ![](src\or_ad.bmp) |
+| ![1](src/or.bmp) | ![2](src/or_st.bmp) | ![3](src/or_pr.bmp) | ![4](src/or_ad.bmp) |
 
 ### Остальные 99.9999% случаев
 В основном же качество полученных изображений буквально ничем не отличается
 
 | source | NumPy | primitive | advanced |
 | -------|-------|-----------|----------|
-| ![](src\ny.bmp) | ![](src\ny_decomp_standard.bmp) | ![](src\ny_decomp_primitive.bmp) | ![](src\ny_decomp_advanced.bmp) |
+| ![1](src/ny.bmp) | ![2](src/ny_decomp_standard.bmp) | ![3](src/ny_decomp_primitive.bmp) | ![4](src/ny_decomp_advanced.bmp) |
 
 ### Итог
 Улучшенный алгоритм не дал какого то существенного улучшения по сравнению с обычным, а оба они сильно проигрывают NumPy по времени работы, что проявляется при работе с большими изображениями. Отсюда также ясно, что если ограничить их временем работы стандартного алгоритма из NumPy, то они програют в качестве.
