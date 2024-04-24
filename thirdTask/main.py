@@ -30,7 +30,6 @@ class StandardLibraryAlgorithm:
         reconstucted_data = np.zeros(original_shape, dtype=np.uint8)
         for channel in range(3):
             U, s, VT = compressed_data[f'U{channel}'], compressed_data[f's{channel}'], compressed_data[f'V{channel}']
-            print(s[:6])
             reconstucted_data[:, :, channel] = (U @ np.diag(s) @ VT).clip(0, 255).astype(np.uint8)
         return reconstucted_data
     
@@ -68,7 +67,6 @@ class PowerMethodAlgorithm:
                 U.append(u)
                 S.append(sigma)
                 V.append(v)
-
                 channel_data = self.deflate(channel_data, sigma, u, v)
             
             compressed_data[f'U{channel}'] = np.array(U)
@@ -82,54 +80,218 @@ class PowerMethodAlgorithm:
         reconstucted_data = np.zeros(original_shape, dtype=np.uint8)
         for channel in range(3):
             U, s, VT = compressed_data[f'U{channel}'], compressed_data[f's{channel}'], compressed_data[f'V{channel}']
-            print((U.T @ np.diag(s) @ VT))
             reconstucted_data[:, :, channel] = (U.T @ np.diag(s) @ VT).clip(0, 255).astype(np.uint8)
         return reconstucted_data
-    
+
+def sqr(a):
+    return 0.0 if a == 0.0 else a*a
+
+def sign(x):
+    return 1 if x >= 0.0 else -1
 
 class AdvancedAlgorithm:
+
     @staticmethod
-    def generate_ortonormal_vector(A, k):
-        m, n = A.shape[0], A.shape[1]
-        
-        U = np.eye(m)
-        V = np.eye(n)
+    def cancelation(U, S, e, l, k):
+        c, s, p = 0.0, 1.0, l-1
 
-        B = A.T @ A
+        for i in range(l,k+1):
+            f, e[i] = s * e[i], c * e[i]
 
-        for _ in range(k):
-            p, q = np.unravel_index(np.argmax(np.abs(B - np.diag(np.diag(B)))), B.shape)
+            if abs(f) <= 1.e-6: break
+                
+            g = S[i]
+            ff, gg = np.fabs(f), np.fabs(g)
+            if ff > gg:
+                h =  ff * np.sqrt(1.0 + sqr(gg/ff))
+            else:
+                h = gg * np.sqrt(1.0 + sqr(ff/gg))
+            S[i], c, s = h, g/h, -f/h
 
-            if abs(B[p, q]) < 1e-10:
+            Y, Z = U[:,p].copy(), U[:,i].copy()
+            U[:,p] =  Y * c + Z * s
+            U[:,i]  = -Y * s + Z * c
+
+    def testfsplit(self, U, S, e, k):
+        goto = False
+
+        for l in np.arange(k+1)[::-1]:
+            if abs(e[l]) <= 1.e-6:
+                goto = True
+                break
+            if abs(S[l-1]) <= 1.e-6:
                 break
 
+        if goto: return l
 
-            theta = 0.5 * np.arctan(2 * B[p, q] / (B[p, p] - B[q, q]))
-            #theta = 0.5 * np.arctan2(2 * B[p, q], B[q, q] - B[p, p])
-            c, s = np.cos(theta), np.sin(theta)
+        self.cancelation(U, S, e, l, k)
+        return l
 
-            B_pp, B_pq, B_qp, B_qq = B[p, p], B[p, q], B[q, p], B[q, q]
-            B[p, p] = c**2 * B_pp - 2 * c * s * B_pq + s**2 * B_qq
-            B[q, q] = s**2 * B_pp + 2 * c * s * B_pq + c**2 * B_qq
-            B[p, q] = B[q, p] = (c**2 - s**2) * B_pq + c * s * (B_pp - B_qq)
-            B[:, p], B[:, q] = c * B[:, p] - s * B[:, q], s * B[:, p] + c * B[:, q]
-            B[p, :], B[q, :] = c * B[p, :] - s * B[q, :], s * B[p, :] + c * B[q, :]
+    def svd(self, A, K):
+        k_iter = 30
+        # bidiagonalization
+        U = np.asarray(A).copy().astype('float64')
+        m, n = U.shape
 
-            V[:, p], V[:, q] = c * V[:, p] - s * V[:, q], s * V[:, p] + c * V[:, q]
+        S, V, e = np.zeros(n), np.zeros((n, n)), np.zeros(n)
+        # Householder's reduction
 
-        S = np.sqrt(np.diag(B))
+        g, x, scale = 0.0, 0.0, 0.0
 
-        zero_mask = (S == 0)
-        S[zero_mask] = 1
+        for i in range(n):
+            e[i], l = scale * g, i+1
+            if i < m:
+                scale = U[i:,i].dot(U[i:,i])
 
-        U = A @ V / S
+                if scale <= 1.e-6:
+                    g = 0.0
+                else:
+                    U[i:,i] = U[i:, i] / scale
+                    s = U[i:,i].dot(U[i:,i])
+                    f = U[i,i].copy()
+                    g = - sign(f) * np.fabs(np.sqrt(s))
+                    h = f * g - s
+                    U[i,i] = f - g
 
-        S[zero_mask] = 0
+                    for j in range(l,n):
+                        f = U[i:,i].dot(U[i:,j]) / h
+                        U[i:,j] += f * U[i:,i]
 
-        idx = np.argsort(S)[::-1]
-        U, S, V = U[:, idx], S[idx], V[:, idx]
+                    U[i:,i] *= scale
+            else:
+                g = 0.0
 
-        return U, S, V.T
+            S[i] = scale * g
+
+            if (i < m) and (i != n-1):
+                scale = U[i,l:].dot(U[i,l:])
+
+                if scale <= 1.e-6:
+                    g = 0.0
+                else:
+                    U[i,l:] /= scale
+                    s = U[i,l:].dot(U[i,l:])
+                    f = U[i,l].copy()
+                    g = - sign(f) * np.fabs(np.sqrt(s))
+                    h = f * g - s
+                    U[i,l] = f - g
+                    e[l:] = U[i,l:] / h
+
+                    for j in range(l,m):
+                        s = U[j, l:].dot(U[i,l:])
+                        U[j,l:] += s * e[l:]
+
+                    U[i,l:] *= scale
+            else:
+                g = 0.0
+
+        # accumulation of right hand gtransformations
+        g, l = 0.0, 0
+        for i in np.arange(n)[::-1]:
+            if i < n-1:
+                if g != 0.0:
+                    V[l:,i] = ( U[i,l:] / U[i,l] ) / g
+                    for j in range(l,n):
+                        s = U[i,l:].dot(V[l:,j])
+                        V[l:,j] += s * V[l:,i]
+
+                V[i,l:] = V[l:,i] = 0.0
+
+            V[i,i], g, l = 1.0, e[i], i
+
+        # accumulation of left hand gtransformations
+        for i in np.arange(min([m,n]))[::-1]:
+            l = i+1
+            g = S[i]
+            U[i,l:] = 0.0
+
+            if g != 0.0:
+                g = 1.0 / g
+                for j in range(l,n):
+                    f = (U[l:,i].dot(U[l:,j]) / U[i,i]) * g
+                    U[i:,j] += f * U[i:,i]
+
+                U[i:,i] *= g
+
+            else:
+                U[i:,i] = 0.0
+
+            U[i,i] += 1.0
+        
+        # Diagonalization of the bidiagonal form
+
+        for k in np.arange(U.shape[1])[::-1]:
+            for t in range(k_iter):
+                l = self.testfsplit(U, S, e, k)
+
+                if l == k:
+                    if S[k] < 0.0:
+                        S[k] *= -1
+                        V[:,k] *= -1
+                    break
+
+                x, y, z = S[l], S[k-1], S[k]
+                g, h = e[k-1], e[k]
+
+                f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y)
+                aa, bb = np.fabs(f), np.fabs(1.0)
+                if aa > bb:
+                    g =  aa * np.sqrt(1.0 + sqr(bb/aa))
+                else:
+                    g = bb * np.sqrt(1.0 + sqr(aa/bb))
+                f = ((x-z)*(x+z)+h*((y/(f+(sign(f) * np.fabs(g))))-h))/x
+
+                c = s = 1.0
+
+                for i in range(l+1,k+1):
+                    g, y = e[i], S[i]
+                    h, g = s*g, c*g
+
+                    aa, bb = np.fabs(f), np.fabs(h)
+                    if aa > bb:
+                        z = aa * np.sqrt(1.0 + sqr(bb/aa))
+                    else:
+                        z = bb * np.sqrt(1.0 + sqr(aa/bb))
+                    e[i-1] = z
+
+                    c, s = f/z, h/z
+                    f, g = x*c+g*s, g*c-x*s
+                    h, y = y*s, y*c
+
+                    X, Z = V[:,i-1].copy(), V[:,i].copy()
+                    V[:,i-1] = c * X + s * Z
+                    V[:,i] = c * Z - s * X
+
+                    aa, bb = np.fabs(f), np.fabs(h)
+                    if aa > bb:
+                        z = aa * np.sqrt(1.0 + sqr(bb/aa))
+                    else:
+                        z = bb * np.sqrt(1.0 + sqr(aa/bb))
+                    S[i-1] = z
+
+                    if z >= 1.e-6:
+                        c, s = f/z, h/z
+
+                    f, x = c*g+s*y, c*y-s*g
+
+                    Y, Z = U[:,i-1].copy(), U[:,i].copy()
+                    U[:,i-1] = c * Y + s * Z
+                    U[:,i  ] = c * Z - s * Y
+
+                e[l], e[k], S[k] = 0.0, f, x
+
+        idx = np.argsort(-S)
+
+        U = U[:, idx]
+        S = S[idx]
+        V = np.transpose(V[:, idx])
+
+        U_k = U[:, :K]
+        S_k = S[:K]
+        V_k = V[:K, :]
+
+        return U_k, S_k, V_k
+       
 
 
     def compress(self, image_data, ratio):
@@ -138,11 +300,11 @@ class AdvancedAlgorithm:
 
         for channel in range(3):
             channel_data = image_data[: ,:, channel]
-            U, S, VT = self.generate_ortonormal_vector(channel_data, k)
+            U, S, VT = self.svd(channel_data, k)
             
-            compressed_data[f'U{channel}'] = U #np.array(U)
-            compressed_data[f's{channel}'] = S#np.array(S)
-            compressed_data[f'V{channel}'] = VT#np.array(VT)
+            compressed_data[f'U{channel}'] = U
+            compressed_data[f's{channel}'] = S
+            compressed_data[f'V{channel}'] = VT
 
         return compressed_data
 
@@ -153,7 +315,6 @@ class AdvancedAlgorithm:
         reconstucted_data = np.zeros(original_shape, dtype=np.uint8)
         for channel in range(3):
             U, s, VT = compressed_data[f'U{channel}'], compressed_data[f's{channel}'], compressed_data[f'V{channel}']
-            print(s[:6])
             reconstucted_data[:, :, channel] = (U @ np.diag(s) @ VT).clip(0, 255).astype(np.uint8)
         return reconstucted_data
 
