@@ -2,20 +2,19 @@ import numpy as np
 from math import sqrt, cos, sin
 import scipy.linalg as la
 
-N = 100
-A, B = 0.0, np.pi
-x = np.linspace(A, B, N+1)
-h = x[1] - x[0]
+# алгоритм взят из http://www.ict.nsc.ru/matmod/files/textbooks/KhakimzyanovCherny-2.pdf
 
 # определим базисную функцию
-def phi_j(j, xj):
+def phi_j(j, xj, x, N):
+    h = x[1] - x[0]
+
     if (j == 0):
         if ((x[0] <= xj) and (xj <= x[1])):
             return (x[1] - xj) / h
         else:
             return 0
-    elif (j == N-1):
-        if ((x[N-1] <= xj) and (x[N] >= xj)):
+    elif (j == N):
+        if ((x[N] <= xj) and (x[N-1] >= xj)):
             return (xj - x[N-1]) / h
         else:
             return 0
@@ -27,8 +26,8 @@ def phi_j(j, xj):
         else:
             return 0
 
-def calc(y, xj):
-    l, r = 0, N-2
+def calc(y, xj, x, N):
+    l, r = 0, N-1
 
     while (r - l > 1):
         m = (l + r) // 2
@@ -37,10 +36,11 @@ def calc(y, xj):
         else:
             r = m
 
-    return y[l] * phi_j(l, xj) + y[r] * phi_j(r, xj) 
+    return y[l] * phi_j(l, xj, x, N) + y[r] * phi_j(r, xj, x, N) 
 
 # K_jk = (phi_k, phi_j)_A
-def left_side(lambd, j, k):
+def left_side(lambd, j, k, x):
+    h = x[1] - x[0]
     if (j > k):
         j, k = k, j
     
@@ -55,8 +55,9 @@ def left_side(lambd, j, k):
         return 0
 
 # вычисляем i-ую ячейку вектора в правой части
-def right_side(lambd, i):
+def right_side(lambd, i, x):
     l_sqrt = sqrt(lambd)
+    h = x[1] - x[0]
 
     a =  2 * (- l_sqrt * (x[i] - x[i+1]) * cos(l_sqrt * x[i]) + sin(l_sqrt * x[i]) - sin(l_sqrt * x[i+1]))
     b = 2 * ( - l_sqrt * (x[i] - x[i-1]) * cos(l_sqrt * x[i]) + sin(l_sqrt * x[i]) - sin(l_sqrt * x[i-1]))
@@ -72,8 +73,7 @@ def thomas_algo(a, b, c, d):
         b[i] = b[i] - tmp * c[i-1]
         d[i] = d[i] - tmp * d[i-1]
     
-    
-    y = np.zeros(n)
+    y = np.zeros(n+1)
     y[n-1] = d[n-1] / b[n-1]
 
     for i in range(n-2, -1, -1):
@@ -82,7 +82,7 @@ def thomas_algo(a, b, c, d):
     return y
 
 
-def compose_cond_and_solve(lambd):
+def compose_cond_and_solve(lambd, x, N):
     # матрица в левой части
     a = np.zeros(N)
     b = np.zeros(N)
@@ -93,34 +93,39 @@ def compose_cond_and_solve(lambd):
     for i in range(1, N+1):
         j = i - 1 # для интервалов
         if (i >= 1):
-            a[j] = left_side(lambd, i - 1, i)
+            a[j] = left_side(lambd, i - 1, i, x)
         if (i < N):
-            c[j] = left_side(lambd, i+1, i)
-        b[j] = left_side(lambd, j, j)
-        d[j] = right_side(lambd, j)
+            c[j] = left_side(lambd, i+1, i, x)
+        b[j] = left_side(lambd, j, j, x)
+        d[j] = right_side(lambd, j, x)
 
     y = thomas_algo(a, b, c, d)
     # boundary conditions (Дирихле)
     y[0] = 0
-    y[N-1] = 0
+    y[N] = 0
 
     return y
 
-l = 50
-lambd = (l * np.pi / B) ** 2
-y = compose_cond_and_solve(lambd)
 
-nn = N * 10
-nh = B / nn
 
-values = [[sin(sqrt(lambd) *  (i * nh)), calc(y, i * nh)] for i in range(nn)]
+def main():
+    lambd = 10
+    N = 100
 
-j = 0
-for th, app in values:
-    j += 1
-    print(f"th={th}, approx={app}, {j}")
+    A, B = 0.0, 4 * np.pi / sqrt(lambd)
+    x = np.linspace(A, B, N+1)
+    h = x[1] - x[0]
 
-max_err = max(abs(th - real) for th, real in values)
+    y = compose_cond_and_solve(lambd, x, N)
+    nn = N * 10
+    nh = B / nn
 
-print(max_err)
+    values = [[sin(sqrt(lambd) *  (i * nh)), calc(y, i * nh, x, N)] for i in range(nn)]
 
+    max_err = max(abs(th - real) for th, real in values)
+
+    print(f"max_err={max_err}, h^2={h**2}")
+
+
+if __name__ == "__main__":
+    main()
