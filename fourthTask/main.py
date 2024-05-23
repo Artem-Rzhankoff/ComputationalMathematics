@@ -1,6 +1,8 @@
 import numpy as np
 from math import sqrt, cos, sin
-import scipy.linalg as la
+from itertools import product
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
 
 # алгоритм взят из http://www.ict.nsc.ru/matmod/files/textbooks/KhakimzyanovCherny-2.pdf
 
@@ -107,24 +109,66 @@ def compose_cond_and_solve(lambd, x, N):
     return y
 
 
+def f(x, _lambda):
+    return -2 * _lambda * np.sin(np.sqrt(_lambda) * x)
+
+def norm_f(_lambda, L):
+    interand = lambda x: f(x, _lambda)**2
+    norm, _ = quad(interand, 0, L)
+    return np.sqrt(norm)
+
+
+def check_error(_lambda, L, N, h, y, x):
+    c = 1
+    c_prime = L / 2 + 1
+    nf = norm_f(_lambda, L)
+
+    right = (c * c_prime)**2 * h**2 * nf
+
+    # в узлах сетки
+    ths = np.array([sin(sqrt(_lambda) * (i * h)) for i in range(N)])
+    apps = np.array([calc(y, i * h, x, N) for i in range(N)])
+
+
+    left = np.sqrt(np.sum((ths - apps)**2) * h)
+
+    if (left > right):
+        print(f"Теоретическая оценка не подтвердилась при lambda={_lambda} и N={N}")
+
+    return left
+
+
+
+
 
 def main():
-    lambd = 10
-    N = 100
+    data = list(product([i for i in range(1, 4)], [10, 100, 1000, 10000]))
 
-    A, B = 0.0, 4 * np.pi / sqrt(lambd)
-    x = np.linspace(A, B, N+1)
-    h = x[1] - x[0]
+    print(data)
 
-    y = compose_cond_and_solve(lambd, x, N)
-    nn = N * 10
-    nh = B / nn
+    hs = []
+    errors = []
 
-    values = [[sin(sqrt(lambd) *  (i * nh)), calc(y, i * nh, x, N)] for i in range(nn)]
+    for l, N in data:
+        A, B = 0.0, np.pi * l
+        _lambda = (np.pi * l / B) ** 2
+        x = np.linspace(A, B, N+1)
+        h = x[1] - x[0]
 
-    max_err = max(abs(th - real) for th, real in values)
+        y = compose_cond_and_solve(_lambda, x, N)
+        err = check_error(_lambda, B, N, h, y, x)
 
-    print(f"max_err={max_err}, h^2={h**2}")
+        hs.append(h)
+        errors.append(err)
+
+
+    plt.loglog(hs, errors, '-o')
+    plt.xlabel('h')
+    plt.ylabel('Error')
+    plt.title('Convergence Rate of FEM')
+    plt.grid(True)
+    plt.savefig('src/error.png')
+    
 
 
 if __name__ == "__main__":
