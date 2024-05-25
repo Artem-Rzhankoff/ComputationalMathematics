@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from math import sqrt, cos, sin
 from itertools import product
 import matplotlib.pyplot as plt
@@ -137,21 +138,15 @@ def check_error(_lambda, L, N, h, y, x):
 
     return left
 
-
-
-
-
 def main():
     data = list(product([i for i in range(1, 4)], [10, 100, 1000, 10000]))
-
-    print(data)
-
     hs = []
     errors = []
-
     for l, N in data:
         A, B = 0.0, np.pi * l
-        _lambda = (np.pi * l / B) ** 2
+        n = random.randint(1, 4)
+        # λ = (pi * n / B) ** 2
+        _lambda = (np.pi * n / B) ** 2
         x = np.linspace(A, B, N+1)
         h = x[1] - x[0]
 
@@ -162,7 +157,7 @@ def main():
         errors.append(err)
 
 
-    plt.loglog(hs, errors, '-o')
+    plt.loglog(hs, errors, 'o')
     plt.xlabel('h')
     plt.ylabel('Error')
     plt.title('Convergence Rate of FEM')
